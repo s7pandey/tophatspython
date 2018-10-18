@@ -6,5 +6,14 @@
 {% else %}
 <h1>Hello, World!</h1>
 {% endif %}
-<video autoplay></video>
+<form id="values" action="/values" method="POST">
+<select name="school" id="school">
+    <option value="Maine" selected>Maine</option>
+    <option value="Montclair">Montclair</option>
+    <option value="Rhode">Rhode</option>
+    <option value="Westchester">Westchester</option>
+</select>
+<input name="term" id="term" type="text" placeholder="Term" />
+<button type="submit">Submit</button>
+</form>
 <script type="text/javascript" src="{{ url_for('static',filename='javascripts/main.js') }}"></script>

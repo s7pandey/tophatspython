@@ -7,6 +7,10 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+bin/
+include/
+.DS_Store
+pip-selfcheck.json
 .Python
 build/
 develop-eggs/
