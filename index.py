@@ -29,25 +29,30 @@ app.config.update(dict(
     # administrator list
     ADMINS = ['shashwat.pandey.com@gmail.com']
 ))
-
+schools = {
+    "Montclair": [montclair_combined.scrape_classes, montclair_combined.scrape_profs], 
+    "Rhode": [rhode_combined.scrape_classes, rhode_combined.scrape_profs],
+    "Westchester": [westchester_combined.scrape_classes, westchester_combined.scrape_profs]
+    }
 mail = Mail(app)
 name = "app"
 pool = ThreadPool(processes=2)
 
 def run_school(school, term, args={}, frame=None):
-    if school == "Montclair":
-        pool.apply_async(montclair_combined.scrape_classes, args=[term, args, frame], callback=email_result)
-    elif school == "Rhode":
-        pool.apply_async(rhode_combined.scrape_classes, args=[term, args, frame], callback=email_result)
-    elif school == "Westchester":
-        pool.apply_async(westchester_combined.scrape_classes, args=[term, args, frame], callback=email_result)
+    pool.apply_async(schools[school][0], args=[term, args, frame], callback=get_profs)
 
+def run_profs(school, frame):
+    pool.apply_async(schools[school][1], args=[args, frame], callback=email_result)
 
-def email_result(result):
+def get_profs(result):
     args = result[1]
     if not args["finished"]:
         run_school(args["school"], args["term"], args, result)
         return
+    frame = pd.DataFrame(result[0])
+    run_profs(args["school"], frame)
+
+def email_result(result):
     frame = pd.DataFrame(result[0])
     name = args["school"]+'_'+args["term"].replace(" ","_")+'.xlsx'
     frame.to_excel('./temp/'+name)
