@@ -6,18 +6,18 @@ import pandas as pd
 import json
 
 
-def scrape_classes(first=None, index=None):
+def scrape_classes(term, args, frame=None):
     driver = webdriver.Firefox()
-    columns = {
-        "title": [],
-        "email": [],
-        "name": [],
-        "size": [],
-        "type": []
-    }
+    columns = { "title": [], "email": [],"name": [],"size": [],"type": [] } if not frame else frame
     # print(columns)
-    first = 0 if not first else first
-    index = 0 if not index else index
+    try:
+        index = args['index']
+    except KeyError:
+        index = 0
+    try:
+        first = args['first']
+    except KeyError:
+        first = 0
     final = 0
     try:
         def reset():
@@ -84,8 +84,9 @@ def scrape_classes(first=None, index=None):
     print("First: "+str(first))
     print("Index: "+str(index))
     driver.quit()
-    df = pd.DataFrame(columns)
-    return df, first, index, first < final
+    # df = pd.DataFrame(columns)
+    args = {"school": "Montclair", "term": term, "first": first, "index": index, "finished": first >= final }
+    return columns, args
 
 def scrape_profs(scraped):
     driver = webdriver.Firefox()

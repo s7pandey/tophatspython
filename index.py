@@ -1,5 +1,9 @@
-from flask import Flask, render_template, url_for, request
+import datetime
+import os
+from flask import Flask, render_template, url_for, request, make_response
 from flask_mail import Mail, Message
+
+import pandas as pd
 
 import maine_combined
 import montclair_combined
@@ -11,12 +15,48 @@ from multiprocessing.pool import ThreadPool
 import boto3
 
 app = Flask(__name__)
+
+app.config.update(dict(
+    DEBUG = True,
+    # email server
+    MAIL_SERVER = 'smtp.googlemail.com',
+    MAIL_PORT = 465,
+    MAIL_USE_TLS = False,
+    MAIL_USE_SSL = True,
+    MAIL_USERNAME = 'shashwat.pandey.com@gmail.com',
+    MAIL_PASSWORD = 'wioholdczxanrxpm',
+
+    # administrator list
+    ADMINS = ['shashwat.pandey.com@gmail.com']
+))
+
 mail = Mail(app)
 name = "app"
 pool = ThreadPool(processes=2)
 
+def run_school(school, term, args={}, frame=None):
+    if school == "Montclair":
+        pool.apply_async(montclair_combined.scrape_classes, args=[term, args, frame], callback=email_result)
+    elif school == "Rhode":
+        pool.apply_async(rhode_combined.scrape_classes, args=[term, args, frame], callback=email_result)
+    elif school == "Westchester":
+        pool.apply_async(westchester_combined.scrape_classes, args=[term, args, frame], callback=email_result)
+
+
 def email_result(result):
-    print(result)
+    args = result[1]
+    if not args["finished"]:
+        run_school(args["school"], args["term"], args, result)
+        return
+    frame = pd.DataFrame(result[0])
+    name = args["school"]+'_'+args["term"].replace(" ","_")+'.xlsx'
+    frame.to_excel('./temp/'+name)
+    with app.app_context():
+        msg = Message(subject=name, sender="shashwat.pandey.com@gmail.com", recipients=["shashwat.pandey.com@gmail.com"])
+        with open('./temp/'+name, 'rb') as fp:
+            msg.attach(name+'.xlsx', "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fp.read())
+        mail.send(msg)
+    os.remove('./temp/'+name)
     return 
 
 @app.route("/")
@@ -27,14 +67,11 @@ def hello():
 def values():
     school = request.form["school"]
     term = request.form["term"]
-    if school == "Montclair":
-        pool.apply_async(target=montclair_combined.scrape_classes, args=[term] callback=email_result)
-    elif school == "Rhode":
-        pool.apply_async(target=rhode_combined.scrape_classes,args=[term] callback=email_result)
-    elif school == "Westchester":
-        pool.apply_async(target=westchester_combined.scrape_classes,args=[term], callback=email_result)
+    response = make_response(render_template("index.html", name=name))
+    response.set_cookie(school+"_"+term.replace(" ","_"), str(datetime.datetime.now()), expires=datetime.datetime.now() + datetime.timedelta(days=3))
+    run_school(school,term)
     
-    return render_template("index.html", name=name)
+    return response
 
 
 

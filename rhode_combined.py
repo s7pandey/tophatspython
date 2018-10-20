@@ -7,7 +7,7 @@ import json
 import pandas as pd
 
 
-def scrape_classes(term, index=None, new_index=None, another_index=None):
+def scrape_classes(term, args, frame=None):
     driver = webdriver.Firefox()
     driver.get("https://appsaprod.uri.edu:9516/psc/sa_crse_cat/EMPLOYEE/HRMS/c/COMMUNITY_ACCESS.CLASS_SEARCH.GBL")
     time.sleep(5)
@@ -18,20 +18,23 @@ def scrape_classes(term, index=None, new_index=None, another_index=None):
     class_select = driver.find_element_by_id('SSR_CLSRCH_WRK_SUBJECT_SRCH$1')
     classes = class_select.find_elements_by_tag_name('option')
     classes_length = len(classes)
-    index = 0 if not index else index
-    new_index = 0 if not new_index else new_index
-    another_index = 0 if not another_index else another_index
-    columns = {"type":[],"title":[], "name":[], "size": []}
+    try:
+        index = args['index']
+    except KeyError:
+        index = 0
+    try:
+        new_index = args['new_index']
+    except KeyError:
+        new_index = 0
+    try:
+        another_index = args['another_index']
+    except KeyError:
+        another_index = 0
+    columns = {"type":[],"title":[], "name":[], "size": []} if not frame else frame
     try:
         while index < classes_length:
             class_select = driver.find_element_by_id('SSR_CLSRCH_WRK_SUBJECT_SRCH$1')
             class_select.find_elements_by_tag_name('option')[index].click()
-            # thing = class_select.find_elements_by_tag_name('option')[index]
-            # if thing.text != "PLS":
-            #     index += 1
-            #     print(thing.text)
-            #     continue
-            # thing.click()
             driver.find_element_by_id("CLASS_SRCH_WRK2_SSR_PB_CLASS_SRCH").click()
             time.sleep(4)
             
@@ -89,13 +92,15 @@ def scrape_classes(term, index=None, new_index=None, another_index=None):
             new_index = 0
             another_index = 0
     except Exception:
-        # driver.save_screenshot('screenshot.png')
         pass
 
     print("INDEXES: %s, %s, %s" % ( index, new_index, another_index))
     driver.quit()
-    frame = pd.DataFrame(columns)
-    return frame, index, new_index, another_index, index < classes_length
+    # frame = pd.DataFrame(columns)
+    args = {"school": "Rhode", "term": term, "index": index, 
+            "new_index": new_index, "another_index": another_index,
+            "finished": index >= classes_length}
+    return columns, args
 
 def scrape_profs(scraped):
     driver = webdriver.Firefox()

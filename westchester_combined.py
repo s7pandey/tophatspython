@@ -5,7 +5,7 @@ from selenium.common.exceptions import NoSuchElementException
 import json
 import pandas as pd
 
-def scrape_classes(term,index=None,new_index=None,another_index=None):
+def scrape_classes(term,args, frame=None):
     driver = webdriver.Firefox()
     driver.get("https://my.wcupa.edu/psp/pprd/EMPLOYEE/SA/c/COMMUNITY_ACCESS.CLASS_SEARCH.GBL?PAPP=YES")
     time.sleep(5)
@@ -19,16 +19,25 @@ def scrape_classes(term,index=None,new_index=None,another_index=None):
     class_select = driver.find_element_by_id('SSR_CLSRCH_WRK_SUBJECT_SRCH$0')
     classes = class_select.find_elements_by_tag_name('option')
     classes_length = len(classes)
-    index = 0 if not index else index
-    columns = {'title':[],'size':[],'name':[]}
+    try:
+        index = args['index']
+    except KeyError:
+        index = 0
+    columns = {'title':[],'size':[],'name':[]} if not frame else frame
     try:
         while index < classes_length:
             class_select = driver.find_element_by_id('SSR_CLSRCH_WRK_SUBJECT_SRCH$0')
             class_select.find_elements_by_tag_name('option')[index].click()
             driver.find_element_by_id("CLASS_SRCH_WRK2_SSR_PB_CLASS_SRCH").click()
             time.sleep(4)
-            new_index = 0 if not new_index else new_index
-            another_index = 0 if not another_index else another_index
+            try:
+                new_index = args['new_index']
+            except KeyError:
+                new_index = 0
+            try:
+                another_index = args['another_index']
+            except KeyError:
+                another_index = 0
             try:
                 driver.find_element_by_id("win0divDERIVED_CLSMSG_ERROR_TEXT")
                 index += 1
@@ -70,9 +79,12 @@ def scrape_classes(term,index=None,new_index=None,another_index=None):
 
     print("INDEXES: %s, %s, %s" % ( index, new_index, another_index))
 
-    frame = pd.DataFrame(columns)
+    # frame = pd.DataFrame(columns)
     driver.quit()
-    return frame, index, new_index, another_index, index < classes_length
+    args = {"school": "Westchester", "term": term, "index": index, 
+            "new_index": new_index, "another_index": another_index, 
+            "finished": index >= classes_length}
+    return [columns, args]
 
 def check(x):
     check_list = re.findall('[A-Z][^A-Z]*',x[0])

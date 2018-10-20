@@ -99,7 +99,8 @@ def scrape_classes():
 
     driver.quit()
     frame = pd.DataFrame(columns)
-    return frame, i, another_index, new_index, i < 26
+    args = {"i": i, "another_index": another_index, "new_index": new_index, "finished": i < 26}
+    return frame, args
 
 def scrape_profs(scraped):
     driver = webdriver.Firefox()
